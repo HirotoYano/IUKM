@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "workspace"
+version = "0.1.0"
+description = ""
+authors = ["yoo <mi21a001@oecu.jp>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.9.5"
+black = "^23.1.0"
+flake8 = "^6.0.0"
+polars = "^0.16.14"
+sentence-transformers = "^2.2.2"
+fugashi = "^1.2.1"
+ipadic = "^1.0.0"
+scikit-learn = "^1.2.2"
+isort = "^5.12.0"
+python-dotenv = "^1.0.0"
+janome = "^0.4.2"
+gensim = "^4.3.1"
+sudachipy = "^0.6.7"
+sudachidict-core = "^20230110"
+bertopic = "^0.14.1"
+numpy = "<1.24.0"
+nbformat = ">=4.2.0"
+matplotlib = "^3.7.1"
+more-itertools = "^9.1.0"
+hydra-core = "^1.3.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+line_length = 120
+
+[tool.black]
+line-length = 120
+
+[tool.flake8]
+max-line-length = 120
+ignore = "E203,"
