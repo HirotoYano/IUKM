@@ -130,3 +130,6 @@ dmypy.json
 .DS_Store
 # data/*
 poetry.lock
+
+# shell script
+initialization.sh

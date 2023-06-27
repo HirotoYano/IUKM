@@ -1,6 +1,6 @@
 import datetime
 
-from codebase.model.bertopic import load_model
+# from codebase.model.bertopic import load_model
 
 
 def get_file_name(target_dir):
@@ -15,6 +15,6 @@ def get_current_datetime():
     return current_date, current_time
 
 
-def get_probability_distribution(model_path, doc):
-    topic_model = load_model(model_path=model_path)
-    return topic_model.transform(doc)
+# def get_probability_distribution(model_path, doc):
+#     topic_model = load_model(model_path=model_path)
+#     return topic_model.transform(doc)

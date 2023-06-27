@@ -27,9 +27,7 @@ class Assembly_Triple_Dataloader(object):
     def __init__(self, folder_name: str) -> None:
         self.folder_name: str = folder_name
 
-    def get_examples(
-        self, file_name: str, max_examples=0
-    ) -> List[Input_Format]:
+    def get_examples(self, file_name: str, max_examples=0) -> List[Input_Format]:
         read_df = pl.read_csv(self.folder_name + "/" + file_name)
         sentence1 = read_df["anchor_utterance"].to_list()
         sentence2 = read_df["positive_utterance"].to_list()

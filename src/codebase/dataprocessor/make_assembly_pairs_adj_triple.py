@@ -26,16 +26,12 @@ def make_triple_pair_process(_df, spe_label_list):
         co_spe_pair_A = list(itertools.combinations(A_clause_index, 2))
         co_spe_pair_B = list(itertools.combinations(B_clause_index, 2))
 
-        clause_all_pair = list(
-            itertools.combinations(A_clause_index + B_clause_index, 2)
-        )
+        clause_all_pair = list(itertools.combinations(A_clause_index + B_clause_index, 2))
         co_speaker_pair = list((set(co_spe_pair_A) | set(co_spe_pair_B)))
 
         clause_pair = list(set(clause_all_pair) - set(co_speaker_pair))
 
-        adjacency_df = pl.DataFrame(
-            clause_pair, columns=["anchor", "positive"]
-        )
+        adjacency_df = pl.DataFrame(clause_pair, columns=["anchor", "positive"])
         adjacency_pair_df_list.append(adjacency_df)
         # break
 
@@ -45,12 +41,8 @@ def make_triple_pair_process(_df, spe_label_list):
 
     triple_dataset_list = []
 
-    for anchor_id in tqdm(
-        adjacency_pair_anchor_id, total=len(adjacency_pair_anchor_id)
-    ):
-        positive_ids = adjacency_pair_df.filter(pl.col("anchor") == anchor_id)[
-            "positive"
-        ].to_list()
+    for anchor_id in tqdm(adjacency_pair_anchor_id, total=len(adjacency_pair_anchor_id)):
+        positive_ids = adjacency_pair_df.filter(pl.col("anchor") == anchor_id)["positive"].to_list()
 
         positive_len = len(positive_ids)
 
@@ -96,16 +88,11 @@ def make_triple_pair_process(_df, spe_label_list):
             .drop("len")
         )
 
-        triple = pl.concat(
-            [_anchor_df, positive_index, other_claims], how="horizontal"
-        )
+        triple = pl.concat([_anchor_df, positive_index, other_claims], how="horizontal")
         # negative_sample_list.append(other_claims)
         triple_dataset_list.append(triple)
     return pl.concat(triple_dataset_list)
 
-
-# %%
-data_file_path = "/workspace/data/interim/speaker_utterance_dataset/一般質問(要旨)2月13日/assembly.csv"
 
 # %%
 file_path = "/workspace/data/interim/speaker_utterance_dataset"
@@ -113,17 +100,11 @@ files = [i for i in os.listdir(file_path) if i not in [".DS_Store"]]
 
 # %%
 for file in files:
-    df_original = pl.read_csv(f"{file_path}/{file}/assembly.csv").rename(
-        {"id": "clause_id", "label": "speaker_label"}
-    )
+    df_original = pl.read_csv(f"{file_path}/{file}/assembly.csv").rename({"id": "clause_id", "label": "speaker_label"})
 
-    _df = df_original.filter(
-        (pl.col("speaker_name") != "議長") & (pl.col("speaker_name") != "副議長")
-    )
+    _df = df_original.filter((pl.col("speaker_name") != "議長") & (pl.col("speaker_name") != "副議長"))
 
-    df_add_len = _df.with_columns(
-        [pl.col("utterance").apply(len).alias("len")]
-    )
+    df_add_len = _df.with_columns([pl.col("utterance").apply(len).alias("len")])
 
     # 10 文字以上で制限？　あまりよくないかも
     index = 10
@@ -132,9 +113,7 @@ for file in files:
     speaker_label_list = df["speaker_label"].unique().to_list()
 
     triple_dataset_df = make_triple_pair_process(df, speaker_label_list)
-    triple_dataset_df.write_csv(
-        f"/workspace/data/interim/adjacency_pair/{file}.csv"
-    )
+    triple_dataset_df.write_csv(f"/workspace/data/interim/adjacency_pair_v2/{file}.csv")
 
 # %%
 # adjacency_pair process
@@ -149,9 +128,7 @@ clause_id_utterance_dict = dict(zip(clause_id, utterance))
 
 # %%
 def search_clauses(_id) -> str:
-    x = df.select(["clause_id", "utterance"]).filter(
-        pl.col("clause_id") == _id
-    )
+    x = df.select(["clause_id", "utterance"]).filter(pl.col("clause_id") == _id)
     return x["utterance"][0]
 
 
@@ -159,21 +136,17 @@ def clauses_id_to_clauses(_df: pl.DataFrame):
     # _df["A_clause"] = _df["anchor"].apply(lambda x: search_clauses(x))
     dd = _df.with_columns(
         [
-            pl.col("anchor")
-            .apply(lambda x: clause_id_utterance_dict[x])
-            .alias("A_clause"),
-            pl.col("positive")
-            .apply(lambda x: clause_id_utterance_dict[x])
-            .alias("B_clause"),
+            pl.col("anchor").apply(lambda x: clause_id_utterance_dict[x]).alias("A_clause"),
+            pl.col("positive").apply(lambda x: clause_id_utterance_dict[x]).alias("B_clause"),
         ]
     )
     return dd
 
 
 # %%
-adjacency_pair_df_add_clauses = clauses_id_to_clauses(adjacency_pair_df)
-adjacency_pair_df_add_clauses.write_csv("adjacency_pair.csv")
-co_speaker_pair_df_add_clauses = clauses_id_to_clauses(co_speaker_pair_df)
-co_speaker_pair_df_add_clauses.write_csv("co_speaker_pair.csv")
-no_pair_df_add_clauses = clauses_id_to_clauses(no_pair_df)
-no_pair_df_add_clauses.write_csv("no_pair_df.csv")
+# adjacency_pair_df_add_clauses = clauses_id_to_clauses(adjacency_pair_df)
+# adjacency_pair_df_add_clauses.write_csv("adjacency_pair.csv")
+# co_speaker_pair_df_add_clauses = clauses_id_to_clauses(co_speaker_pair_df)
+# co_speaker_pair_df_add_clauses.write_csv("co_speaker_pair.csv")
+# no_pair_df_add_clauses = clauses_id_to_clauses(no_pair_df)
+# no_pair_df_add_clauses.write_csv("no_pair_df.csv")

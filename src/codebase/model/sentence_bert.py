@@ -15,8 +15,7 @@ from sentence_transformers.evaluation import (
     ParaphraseMiningEvaluator,
     TripletEvaluator,
 )
-
-# from torch import nn
+from torch import nn
 from torch.utils.data import DataLoader
 
 transformers.BertTokenizer = transformers.BertJapaneseTokenizer
@@ -59,17 +58,17 @@ class Sentence_BERT_Model(object):
             pooling_mode_max_tokens=self.pooling_mode_max_tokens,
         )
 
-        # dense = models.Dense(
-        #     in_features=word_embedding_model.get_word_embedding_dimension(),
-        #     out_features=n_dim,
-        #     activation_function=nn.Tanh(),
-        # )
+        dense = models.Dense(
+            in_features=word_embedding_model.get_word_embedding_dimension(),
+            out_features=n_dim,
+            activation_function=nn.Tanh(),
+        )
 
         model = SentenceTransformer(
             modules=[
                 word_embedding_model,
                 pooling_model,
-                # dense,
+                dense,
             ],
             device=self.use_dirver,
         )

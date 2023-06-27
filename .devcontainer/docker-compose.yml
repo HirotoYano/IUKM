@@ -1,7 +1,7 @@
-version: '3'
+version: "3"
 
 services:
-  sentence_bert:
+  iukm:
     build:
       context: ./environment/ubuntu
       # CUP
@@ -10,12 +10,12 @@ services:
       dockerfile: Dockerfile.gpu
       args:
         # USER setting
-        - USERNAME=${USER_NAME}
+        - USER_NAME=${USER_NAME}
         - USER_UID=${USER_UID}
         - USER_GID=${USER_GID}
         # network setting
-        - http_proxy=${HTTP_PROXY}
-        - https_proxy=${HTTPS_PROXY}
+        - HTTP_PROXY=${PROXY}
+        - HTTPS_PROXY=${PROXY}
     volumes:
       # Forwards the local Docker socket to the container.
       - /var/run/docker.sock:/var/run/docker-host.sock
@@ -41,20 +41,21 @@ services:
       # Uncomment the next line to use a non-root user for all processes.
     user: vscode
     working_dir: /workspace
-    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally. 
+    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally.
     # (Adding the "ports" property to this file will not forward from a Codespace.)
     deploy:
       resources:
         reservations:
           devices:
-            - capabilities: [ gpu ]
-    networks:
-     app_net:
-      ipv4_address: 172.20.0.2
+            - capabilities: [gpu]
+# WSL用ネットワーク設定
+#     networks:
+#      app_net:
+#       ipv4_address: 172.20.0.2
 
-networks:
-  app_net:
-    ipam:
-      driver: default
-      config:
-        - subnet: 172.20.0.0/16
+# networks:
+#   app_net:
+#     ipam:
+#       driver: default
+#       config:
+#         - subnet: 172.20.0.0/16
