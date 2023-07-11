@@ -133,3 +133,5 @@ poetry.lock
 
 # shell script
 initialization.sh
+
+src/multirun/*
