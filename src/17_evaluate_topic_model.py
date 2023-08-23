@@ -38,37 +38,42 @@ def main():
     short_summary_list_tf_idf: List[str] = deepcopy(short_summary_list)
     short_summary_list_topic_model: List[str] = deepcopy(short_summary_list)
 
+    counter_tf_idf: int = 0
+    counter_topic_model: int = 0
+
     print("=== 提案手法 ===")
-    for short_summary in short_summary_list:
-        for i in range(len(df_tf_idf_result)):
+    for i in range(len(df_tf_idf_result)):
+        for short_summary in short_summary_list:
             for cluster in cluster_list:
                 if df_tf_idf_result[cluster][i] in short_summary:
                     print(short_summary)
                     print(df_tf_idf_result[cluster].to_list())
                     short_summary_list_tf_idf.remove(short_summary)
                     cluster_list.remove(cluster)
+                    counter_tf_idf += 1
                     break
 
             if short_summary not in short_summary_list_tf_idf:
-                break
+                short_summary_list = deepcopy(short_summary_list_tf_idf)
 
     print("\n=== LDA ===")
-    for short_summary in short_summary_list_topic_model:
-        for i in range(len(df_topic_model_result)):
+    for i in range(len(df_topic_model_result)):
+        for short_summary in short_summary_list_topic_model:
             for cluster in cluster_list:
                 if df_topic_model_result[cluster][i] in short_summary:
                     print(short_summary)
                     print(df_topic_model_result[cluster].to_list())
                     short_summary_list_topic_model.remove(short_summary)
                     cluster_list.remove(cluster)
+                    counter_topic_model += 1
                     break
 
             if short_summary not in short_summary_list_topic_model:
-                break
+                short_summary_list = deepcopy(short_summary_list_topic_model)
 
     print("\nmatch short summary count")
-    print(f"proposed method: {len(short_summary_list) - len(short_summary_list_tf_idf)}")
-    print(f"LDA: {len(short_summary_list) - len(short_summary_list_topic_model)}")
+    print(f"proposed method: {counter_tf_idf}")
+    print(f"LDA: {counter_topic_model}")
 
 
 if __name__ == "__main__":
