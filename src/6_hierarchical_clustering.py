@@ -21,42 +21,27 @@ MINUTES_DATA_PATH: str = os.environ["MINUTES_DATA_PATH"]
 
 
 def main():
-    # load vectors
-    # 20 dimensional vectors
-    _20_dimensional_vectors_path: str = f"{LOG_PATH}/embeddings/2023-6-23/7-37-34/vectors_20_dimension.csv"
-    # 10 dimensional vectors
-    _10_dimensional_vectors_path: str = f"{LOG_PATH}/embeddings/2023-6-23/7-37-34/vectors_10_dimension.csv"
-    # 5 dimensional vectors
-    _5_dimensional_vectors_path: str = f"{LOG_PATH}/embeddings/2023-6-23/7-37-34/vectors_5_dimension.csv"
-    # 3 dimensional vectors
-    _3_dimensional_vectors_path: str = f"{LOG_PATH}/embeddings/2023-6-23/7-37-34/vectors_3_dimension.csv"
-
-    vectors_path_list: list = [
-        _3_dimensional_vectors_path,
-        _5_dimensional_vectors_path,
-        _10_dimensional_vectors_path,
-        _20_dimensional_vectors_path,
-    ]
-    dim_list: list = [3, 5, 10, 20]
+    vectors_path: str = f"{LOG_PATH}/embeddings/2023-7-11/9-28-28"
+    vectors_csv_list: List[str] = os.listdir(vectors_path)
+    dim_list: List[int] = [3, 5, 10, 20, 30, 40, 50]
+    assembly_file_path: str = f"{INTERIM_DATA_PATH}/{MINUTES_DATA_PATH}/一般質問(要旨)2月13日/assembly.csv"
+    df_assembly: pl.DataFrame = data_loder(file_path=assembly_file_path, has_header=True)
 
     current_date, current_time = get_current_datetime()
     save_path: str = f"{OUTPUT_PATH}/dendrogram/{current_date}/{current_time}"
     make_dir(save_path)
 
-    for i, vectors_path in enumerate(tqdm(vectors_path_list)):
-        vectors: np.ndarray = np.loadtxt(vectors_path, delimiter=",")
+    for i, vectors_csv in enumerate(tqdm(vectors_csv_list)):
+        vectors: np.ndarray = np.loadtxt(f"{vectors_path}/{vectors_csv}", delimiter=",")
 
         z = linkage(vectors, method="ward", metric="euclidean")
-        # df = pl.DataFrame(z)
 
-        fig, ax = plt.subplots(figsize=(20, 5))
-        ax = dendrogram(z)
+        # fig, ax = plt.subplots(figsize=(20, 5))
+        # ax = dendrogram(z)
 
-        fig.savefig(f"{save_path}/{dim_list[i]}_dimension.png")
+        # fig.savefig(f"{save_path}/{dim_list[i]}_dimension.png")
 
         clusters = fcluster(z, t=49, criterion="maxclust")
-        assembly_file_path: str = f"{INTERIM_DATA_PATH}/{MINUTES_DATA_PATH}/一般質問(要旨)2月13日/assembly.csv"
-        df_assembly = data_loder(file_path=assembly_file_path, has_header=True)
         cluster_series = pl.DataFrame(clusters).rename({"column_0": "cluster"})
 
         df_assembly_add_cluster = df_assembly.with_column(cluster_series)
