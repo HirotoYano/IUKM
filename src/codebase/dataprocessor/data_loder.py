@@ -9,7 +9,7 @@ import polars as pl
 from codebase.dataprocessor.input_format import Input_Format
 
 
-def data_loder(file_path: str, has_header: bool = False):
+def data_loder(file_path: str, has_header: bool = False) -> pl.DataFrame:
     if re.compile(os.path.splitext(file_path)[-1]).search(".tsv"):
         return pl.read_csv(file_path, separator="\t", has_header=has_header)
     elif re.compile(os.path.splitext(file_path)[-1]).search(".csv"):
