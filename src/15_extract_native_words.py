@@ -18,42 +18,48 @@ OUTPUT_PATH: str = os.environ["OUTPUT_PATH"]
 
 
 def main():
-    assembly_file_path: str = f"{INTERIM_DATA_PATH}/{MINUTES_DATA_PATH}/一般質問(要旨)2月13日/assembly.csv"
-    df_assembly: pl.DataFrame = data_loder(file_path=assembly_file_path, has_header=True)
-    division_id: List[int] = df_assembly.filter(
-        ((pl.col("speaker_name") == "議長") | (pl.col("speaker_name") == "副議長"))
-        & (pl.col("utterance").str.contains(r"[一二三四五六七八九十百]+番.+"))
-    )["id"].to_list()
-    division_id.append(df_assembly[-1]["id"][0])
+    assembly_file_path: str = f"{INTERIM_DATA_PATH}/{MINUTES_DATA_PATH}"
+    minutes_dir_list: List[str] = os.listdir(assembly_file_path)
 
-    discussion_csv_save_path: str = f"{OUTPUT_PATH}/discussion"
-    make_dir(discussion_csv_save_path)
-
-    doc = []
-    for i in tqdm(range(len(division_id) - 1)):
-        df_assembly_filter: pl.DataFrame = df_assembly[division_id[i] : division_id[i + 1]].filter(
-            (pl.col("speaker_name") != "議長") & (pl.col("speaker_name") != "副議長")
+    for minutes_dir in tqdm(minutes_dir_list):
+        print(minutes_dir)
+        df_assembly: pl.DataFrame = data_loder(
+            file_path=f"{assembly_file_path}/{minutes_dir}/assembly.csv", has_header=True
         )
-        save_csv(df=df_assembly_filter, path=discussion_csv_save_path, file_name=f"{i}.csv")
+        division_id: List[int] = df_assembly.filter(
+            ((pl.col("speaker_name") == "議長") | (pl.col("speaker_name") == "副議長"))
+            & (pl.col("utterance").str.contains(r"[一二三四五六七八九十百]+番.+[さん君]+。"))
+        )["id"].to_list()
+        division_id.append(df_assembly[-1]["id"][0])
 
-        word_list = []
-        for utterance in tqdm(df_assembly_filter["utterance"], leave=False):
-            word_list += sudachi_tokenizer(utterance)
-        doc.append(" ".join(word_list))
+        discussion_csv_save_path: str = f"{INTERIM_DATA_PATH}/discussion/{minutes_dir}"
+        make_dir(discussion_csv_save_path)
 
-    print(doc)
+        # doc = []
+        for i in tqdm(range(len(division_id) - 1), leave=False):
+            df_assembly_filter: pl.DataFrame = df_assembly[division_id[i] : division_id[i + 1]].filter(
+                (pl.col("speaker_name") != "議長") & (pl.col("speaker_name") != "副議長")
+            )
+            save_csv(df=df_assembly_filter, path=discussion_csv_save_path, file_name=f"{i}.csv")
 
-    vectorizer = TfidfVectorizer(smooth_idf=False)
-    values = vectorizer.fit_transform(doc).toarray()
-    words = vectorizer.get_feature_names_out().tolist()
+    # word_list = []
+    # for utterance in tqdm(df_assembly_filter["utterance"], leave=False):
+    #     word_list += sudachi_tokenizer(utterance)
+    # doc.append(" ".join(word_list))
 
-    df_tf_idf = pl.DataFrame({"words": words})
+    # print(doc)
 
-    for j, value in enumerate(tqdm(values, leave=False), start=1):
-        df_value = pl.DataFrame({f"cluster{j}": value})
-        df_tf_idf = df_tf_idf.with_columns(df_value)
+    # vectorizer = TfidfVectorizer(smooth_idf=False)
+    # values = vectorizer.fit_transform(doc).toarray()
+    # words = vectorizer.get_feature_names_out().tolist()
 
-    print(df_tf_idf)
+    # df_tf_idf = pl.DataFrame({"words": words})
+
+    # for j, value in enumerate(tqdm(values, leave=False), start=1):
+    #     df_value = pl.DataFrame({f"cluster{j}": value})
+    #     df_tf_idf = df_tf_idf.with_columns(df_value)
+
+    # print(df_tf_idf)
 
 
 if __name__ == "__main__":
