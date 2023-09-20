@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,36 +22,40 @@ MINUTES_DATA_PATH: str = os.environ["MINUTES_DATA_PATH"]
 
 
 def main():
-    vectors_path: str = f"{LOG_PATH}/embeddings/2023-7-11/9-28-28"
+    vectors_path: str = f"{LOG_PATH}/embeddings_v3/2023-8-29/6-45-59"
     vectors_csv_list: List[str] = os.listdir(vectors_path)
-    dim_list: List[int] = [3, 5, 10, 20, 30, 40, 50]
-    assembly_file_path: str = f"{INTERIM_DATA_PATH}/{MINUTES_DATA_PATH}/一般質問(要旨)2月13日/assembly.csv"
-    df_assembly: pl.DataFrame = data_loder(file_path=assembly_file_path, has_header=True)
-
+    # dim_list: List[int] = [3, 5, 10, 20, 30, 40, 50]
+    dim_list: List[int] = [10]
+    general_interpellation_list: List[str] = os.listdir(vectors_path)
     current_date, current_time = get_current_datetime()
-    save_path: str = f"{OUTPUT_PATH}/dendrogram/{current_date}/{current_time}"
-    make_dir(save_path)
 
-    for i, vectors_csv in enumerate(tqdm(vectors_csv_list)):
-        vectors: np.ndarray = np.loadtxt(f"{vectors_path}/{vectors_csv}", delimiter=",")
+    for general_interpellation in tqdm(general_interpellation_list):
+        assembly_file_path: str = f"{INTERIM_DATA_PATH}/{MINUTES_DATA_PATH}/{general_interpellation}/assembly.csv"
+        df_assembly: pl.DataFrame = data_loder(file_path=assembly_file_path, has_header=True)
 
-        z = linkage(vectors, method="ward", metric="euclidean")
+        save_path: str = f"{OUTPUT_PATH}/dendrogram_v3/{current_date}/{current_time}/{general_interpellation}"
+        make_dir(save_path)
 
-        # fig, ax = plt.subplots(figsize=(20, 5))
-        # ax = dendrogram(z)
+        for i, vectors_csv in enumerate(tqdm(vectors_csv_list, leave=False)):
+            vectors: np.ndarray = np.loadtxt(f"{vectors_path}/{vectors_csv}/vectors_10_dimension.csv", delimiter=",")
 
-        # fig.savefig(f"{save_path}/{dim_list[i]}_dimension.png")
+            z = linkage(vectors, method="ward", metric="euclidean")
 
-        clusters = fcluster(z, t=49, criterion="maxclust")
-        cluster_series = pl.DataFrame(clusters).rename({"column_0": "cluster"})
+            # fig, ax = plt.subplots(figsize=(20, 5))
+            # ax = dendrogram(z)
 
-        df_assembly_add_cluster = df_assembly.with_column(cluster_series)
+            # fig.savefig(f"{save_path}/{dim_list[i]}_dimension.png")
 
-        save_csv(
-            df=df_assembly_add_cluster,
-            path=save_path,
-            file_name=f"assembly_cluster_{dim_list[i]}_dimension.csv",
-        )
+            clusters = fcluster(z, t=49, criterion="maxclust")
+            cluster_series = pl.DataFrame(clusters).rename({"column_0": "cluster"})
+
+            df_assembly_add_cluster = df_assembly.with_column(cluster_series)
+
+            save_csv(
+                df=df_assembly_add_cluster,
+                path=save_path,
+                file_name=f"assembly_cluster_{dim_list[i]}_dimension.csv",
+            )
 
 
 if __name__ == "__main__":

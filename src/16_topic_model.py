@@ -20,51 +20,93 @@ OUTPUT_PATH: str = os.environ["OUTPUT_PATH"]
 
 
 def main():
-    assembly_file_path: str = f"{INTERIM_DATA_PATH}/{MINUTES_DATA_PATH}/一般質問(要旨)2月13日/assembly.csv"
-    df_assembly: pl.DataFrame = data_loder(file_path=assembly_file_path, has_header=True)
-    division_id: List[int] = df_assembly.filter(
-        ((pl.col("speaker_name") == "議長") | (pl.col("speaker_name") == "副議長"))
-        & (pl.col("utterance").str.contains(r"[一二三四五六七八九十百]+番.+"))
-    )["id"].to_list()
-    division_id.append(df_assembly[-1]["id"][0])
-
-    discussion_csv_save_path: str = f"{OUTPUT_PATH}/discussion"
-    make_dir(discussion_csv_save_path)
-
-    doc = []
-    for i in tqdm(range(len(division_id) - 1)):
-        df_assembly_filter: pl.DataFrame = df_assembly[division_id[i] : division_id[i + 1]].filter(
-            (pl.col("speaker_name") != "議長") & (pl.col("speaker_name") != "副議長")
-        )
-        save_csv(df=df_assembly_filter, path=discussion_csv_save_path, file_name=f"{i}.csv")
-
-        word_list = []
-        for utterance in tqdm(df_assembly_filter["utterance"], leave=False):
-            word_list.extend(sudachi_tokenizer(utterance))
-        doc.append(word_list)
-
-    dictionary = Dictionary(doc)
-    x = 1
-    y = 0.1
-    dictionary.filter_extremes(no_below=x, no_above=y)
-    corpus = [dictionary.doc2bow(text) for text in doc]
-
-    num_topics = 49
-    lda = LdaModel(corpus, id2word=dictionary, num_topics=num_topics, alpha=0.01)
-
-    df: pl.DataFrame = pl.DataFrame()
-    for t in tqdm(range(num_topics)):
-        word = []
-        for i, prob in lda.get_topic_terms(t, topn=5):
-            word.append(dictionary.id2token[int(i)])
-
-        _: pl.DataFrame = pl.DataFrame({f"cluster{t+1}": word}, {f"cluster{t+1}": pl.Utf8})
-        df = df.with_columns(_)
-
+    discussion_path: str = f"{INTERIM_DATA_PATH}/discussion"
+    # general_interpellation_list: List[str] = os.listdir(discussion_path)
+    general_interpellation_list: List[str] = os.listdir(f"{OUTPUT_PATH}/compair_proposed_method")
     current_date, current_time = get_current_datetime()
-    topic_model_result_save_path: str = f"{OUTPUT_PATH}/topic_model/{current_date}/{current_time}"
-    make_dir(topic_model_result_save_path)
-    save_csv(df=df, path=topic_model_result_save_path, file_name="result.csv")
+
+    for general_interpellation in tqdm(general_interpellation_list):
+        assembly_file_path: str = f"{INTERIM_DATA_PATH}/{MINUTES_DATA_PATH}/{general_interpellation}/assembly.csv"
+        df_assembly: pl.DataFrame = data_loder(file_path=assembly_file_path, has_header=True).filter(
+            (pl.col("speaker_name") != "議長") | (pl.col("speaker_name") != "副議長")
+        )
+
+        digest_file_path: str = f"{INTERIM_DATA_PATH}/{MINUTES_DATA_PATH}/{general_interpellation}/digest.csv"
+        df_digest: pl.DataFrame = data_loder(file_path=digest_file_path, has_header=True).filter(
+            (pl.col("label") == "policy.title") | (pl.col("label") == "reply.utterance")
+        )
+
+        short_summary_list: List[str] = []
+        questioner_list: List[str] = []
+        respondent_list: List[str] = []
+
+        for i in tqdm(range(len(df_digest)), leave=False):
+            if df_digest["label"][i] == "policy.title":
+                short_summary_list.append(df_digest["utterance"][i])
+                questioner_list.append(df_digest["speaker_name"][i])
+            elif df_digest["label"][i] == "reply.utterance" and df_digest["label"][i - 1] == "policy.title":
+                respondent_list.append(df_digest["speaker_name"][i])
+
+        df_questioner_to_respondent = pl.DataFrame(
+            {
+                "short_summary": short_summary_list,
+                "questioner": questioner_list,
+                "respondent": respondent_list,
+            },
+            {
+                "short_summary": pl.Utf8,
+                "questioner": pl.Utf8,
+                "respondent": pl.Utf8,
+            },
+        )
+
+        discussion_file_path: str = f"{discussion_path}/{general_interpellation}"
+        discussion_file_list: List[str] = os.listdir(discussion_file_path)
+
+        docs: List[List[str]] = []
+        for discussion_file in tqdm(discussion_file_list, leave=False):
+            df_discussion: pl.DataFrame = data_loder(
+                file_path=f"{discussion_file_path}/{discussion_file}", has_header=True
+            )
+            questioner = df_discussion["speaker_name"][0]
+            df_questioner_to_respondent_filter: pl.DataFrame = df_questioner_to_respondent.filter(
+                pl.col("questioner") == questioner
+            )
+
+            for i in tqdm(range(len(df_questioner_to_respondent_filter)), leave=False):
+                doc: List[str] = []
+                df_discussion_filter: pl.DataFrame = df_discussion.filter(
+                    (pl.col("speaker_name") == df_questioner_to_respondent_filter["questioner"][i])
+                    | (pl.col("speaker_name") == df_questioner_to_respondent_filter["respondent"][i])
+                )
+
+                for utterance in tqdm(df_discussion_filter["utterance"], leave=False):
+                    doc.extend(sudachi_tokenizer(utterance))
+
+                docs.append(doc)
+
+        dictionary = Dictionary(docs)
+        x = 1
+        y = 0.1
+        dictionary.filter_extremes(no_below=x, no_above=y)
+        corpus = [dictionary.doc2bow(text) for text in docs]
+        print(len(dictionary))
+
+        num_topics = len(df_digest.filter(pl.col("label") == "policy.title"))
+        lda = LdaModel(corpus, id2word=dictionary, num_topics=num_topics, alpha=0.01)
+
+        df: pl.DataFrame = pl.DataFrame()
+        for t in tqdm(range(num_topics)):
+            word = []
+            for i, prob in lda.get_topic_terms(t, topn=len(dictionary)):
+                word.append(dictionary.id2token[int(i)])
+
+            _: pl.DataFrame = pl.DataFrame({f"cluster{t+1}": word}, {f"cluster{t+1}": pl.Utf8})
+            df = df.with_columns(_)
+
+        topic_model_result_save_path: str = f"{OUTPUT_PATH}/topic_model/{current_date}/{current_time}"
+        make_dir(topic_model_result_save_path)
+        save_csv(df=df, path=topic_model_result_save_path, file_name=f"{general_interpellation}.csv")
 
 
 if __name__ == "__main__":
