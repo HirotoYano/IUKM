@@ -48,6 +48,7 @@ services:
         reservations:
           devices:
             - capabilities: [gpu]
+    shm_size: '7gb'
 # WSL用ネットワーク設定
 #     networks:
 #      app_net:
